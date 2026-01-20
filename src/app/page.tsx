@@ -14,6 +14,22 @@ export default function VIPSignupPage() {
     phoneNumber: '',
   });
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [countryCode, setCountryCode] = useState('+1');
+  const [showCountrySelect, setShowCountrySelect] = useState(false);
+
+  // Common country codes
+  const countryCodes = [
+    { code: '+1', country: 'US/CA', flag: '🇺🇸' },
+    { code: '+44', country: 'UK', flag: '🇬🇧' },
+    { code: '+61', country: 'AU', flag: '🇦🇺' },
+    { code: '+49', country: 'DE', flag: '🇩🇪' },
+    { code: '+33', country: 'FR', flag: '🇫🇷' },
+    { code: '+91', country: 'IN', flag: '🇮🇳' },
+    { code: '+81', country: 'JP', flag: '🇯🇵' },
+    { code: '+86', country: 'CN', flag: '🇨🇳' },
+    { code: '+55', country: 'BR', flag: '🇧🇷' },
+    { code: '+52', country: 'MX', flag: '🇲🇽' },
+  ];
 
   // Exact HYROS color tokens
   const colors = {
@@ -95,6 +111,14 @@ export default function VIPSignupPage() {
     }
   };
 
+  // Format phone number with country code
+  const formatPhoneNumber = (phone: string): string => {
+    // Remove any non-digit characters except +
+    const cleaned = phone.replace(/[^\d]/g, '');
+    // Combine country code with cleaned number
+    return `${countryCode}${cleaned}`;
+  };
+
   // Route 1: SMS contact - submits and goes to thank you
   const handleRoute1Submit = async () => {
     if (!formData.phoneNumber) return;
@@ -102,13 +126,14 @@ export default function VIPSignupPage() {
     setIsSubmitting(true);
 
     try {
-      // Submit to API
+      // Submit to API with formatted phone number
+      const formattedPhone = formatPhoneNumber(formData.phoneNumber);
       await fetch('/api/submit-lead', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...formData, route: 'sms' }),
+        body: JSON.stringify({ ...formData, phoneNumber: formattedPhone, route: 'sms' }),
       });
 
       // Move to thank you step
@@ -128,21 +153,22 @@ export default function VIPSignupPage() {
     setIsSubmitting(true);
 
     try {
-      // Submit to API
+      // Submit to API with formatted phone number
+      const formattedPhone = formatPhoneNumber(formData.phoneNumber);
       await fetch('/api/submit-lead', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ ...formData, route: 'schedule' }),
+        body: JSON.stringify({ ...formData, phoneNumber: formattedPhone, route: 'schedule' }),
       });
 
       // Open Calendly in new tab
-      window.open('https://api.leadconnectorhq.com/widget/booking/5a3GFjCNmPHK1xBHD60U', '_blank');
+      window.open('https://hyros.com/book-a-call', '_blank');
     } catch (error) {
       console.error('Submission error:', error);
       // Still open Calendly even on error
-      window.open('https://api.leadconnectorhq.com/widget/booking/5a3GFjCNmPHK1xBHD60U', '_blank');
+      window.open('https://hyros.com/book-a-call', '_blank');
     } finally {
       setIsSubmitting(false);
     }
@@ -246,10 +272,11 @@ export default function VIPSignupPage() {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          padding: '48px 20px',
+          padding: '20px',
+          marginTop: '-5vh',
         }}
       >
-        <div style={{ width: '100%', maxWidth: 400 }}>
+        <div style={{ width: '100%', maxWidth: 420 }}>
           {/* Step 1: Email */}
           {step === 1 && (
             <div>
@@ -273,7 +300,7 @@ export default function VIPSignupPage() {
                     margin: '0 0 12px 0',
                   }}
                 >
-                  Enter your email to begin your application
+                  Enter the email you will use for your account
                 </p>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -343,6 +370,17 @@ export default function VIPSignupPage() {
                   >
                     Continue
                   </button>
+                  <p
+                    style={{
+                      color: colors.subtitle,
+                      fontSize: 12,
+                      fontWeight: 400,
+                      textAlign: 'center',
+                      marginTop: 12,
+                    }}
+                  >
+                    *No Credit Card Required At This Time
+                  </p>
                 </div>
               </div>
             </div>
@@ -371,7 +409,7 @@ export default function VIPSignupPage() {
                     margin: '0 0 12px 0',
                   }}
                 >
-                  Help us understand your business
+                  We will optimize your ad settings for your spend and business model
                 </p>
               </div>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -643,6 +681,26 @@ export default function VIPSignupPage() {
                       alignItems: 'center',
                     }}
                   >
+                    {/* Country code prefix */}
+                    <div
+                      style={{
+                        padding: '0 12px',
+                        borderRight: `1px solid ${colors.border}`,
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        backgroundColor: colors.background,
+                        borderTopLeftRadius: 8,
+                        borderBottomLeftRadius: 8,
+                        fontSize: 14,
+                        fontFamily: 'Archivo, sans-serif',
+                        color: colors.primaryText,
+                        cursor: 'pointer',
+                      }}
+                      onClick={() => setShowCountrySelect(!showCountrySelect)}
+                    >
+                      {countryCodes.find(c => c.code === countryCode)?.flag} {countryCode} ▾
+                    </div>
                     <input
                       type="tel"
                       name="phoneNumber"
@@ -652,9 +710,52 @@ export default function VIPSignupPage() {
                       onKeyDown={(e) => handleKeyDown(e, handleRoute1Submit, isStep3Valid && !isSubmitting)}
                       placeholder="Phone Number*"
                       autoComplete="off"
-                      style={inputStyle}
+                      style={{ ...inputStyle, paddingLeft: 12 }}
                     />
                   </div>
+
+                  {/* Country code dropdown */}
+                  {showCountrySelect && (
+                    <div
+                      style={{
+                        position: 'absolute',
+                        top: 54,
+                        left: 0,
+                        backgroundColor: colors.cards,
+                        border: `1px solid ${colors.border}`,
+                        borderRadius: 8,
+                        boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                        zIndex: 10,
+                        maxHeight: 200,
+                        overflowY: 'auto',
+                        width: 160,
+                      }}
+                    >
+                      {countryCodes.map((c) => (
+                        <div
+                          key={c.code}
+                          onClick={() => {
+                            setCountryCode(c.code);
+                            setShowCountrySelect(false);
+                          }}
+                          style={{
+                            padding: '10px 12px',
+                            cursor: 'pointer',
+                            fontSize: 14,
+                            fontFamily: 'Archivo, sans-serif',
+                            backgroundColor: c.code === countryCode ? colors.background : 'transparent',
+                            display: 'flex',
+                            gap: 8,
+                          }}
+                        >
+                          <span>{c.flag}</span>
+                          <span>{c.code}</span>
+                          <span style={{ color: colors.subtitle }}>{c.country}</span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
                   {touched.phoneNumber && !formData.phoneNumber && (
                     <span
                       style={{

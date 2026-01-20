@@ -16,7 +16,9 @@ export interface LeadFormData {
 /**
  * API request payload for /api/submit-lead
  */
-export interface SubmitLeadRequest extends LeadFormData {}
+export interface SubmitLeadRequest extends LeadFormData {
+  route?: 'sms' | 'schedule'; // Route 1 = sms, Route 2 = schedule
+}
 
 /**
  * API response for /api/submit-lead

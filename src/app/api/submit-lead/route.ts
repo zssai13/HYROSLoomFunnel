@@ -6,6 +6,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { SubmitLeadRequest, SubmitLeadResponse } from '@/lib/types';
 import { sendSlackNotification } from '@/lib/slack';
 import { upsertHubSpotContact } from '@/lib/hubspot';
+import { sendLeadSMS } from '@/lib/sms';
 
 /**
  * Validate email format
@@ -60,6 +61,7 @@ export async function POST(request: NextRequest): Promise<NextResponse<SubmitLea
       adSpend: data.adSpend,
       websiteUrl: data.websiteUrl,
       phoneNumber: data.phoneNumber ? '***' : undefined, // Mask phone for logs
+      route: data.route || 'unknown',
     });
 
     // Validate request
@@ -75,17 +77,29 @@ export async function POST(request: NextRequest): Promise<NextResponse<SubmitLea
 
     // Fire integrations asynchronously (don't await - fire and forget)
     // These run in the background and don't block the response
-    Promise.all([
-      sendSlackNotification(leadData).catch(err => {
-        console.error('[API] Slack notification failed:', err);
-      }),
+    const integrations: Promise<boolean | void>[] = [
       upsertHubSpotContact(leadData).catch(err => {
         console.error('[API] HubSpot sync failed:', err);
       }),
-    ]).then(([slackResult, hubspotResult]) => {
+    ];
+
+    // Only send Slack notification and SMS for Route 1 (FASTEST / SMS contact)
+    if (leadData.route === 'sms') {
+      integrations.push(
+        sendSlackNotification(leadData).catch(err => {
+          console.error('[API] Slack notification failed:', err);
+        }),
+        sendLeadSMS(leadData.phoneNumber).catch(err => {
+          console.error('[API] SMS failed:', err);
+        })
+      );
+    }
+
+    Promise.all(integrations).then((results) => {
       console.log('[API] Integration results:', {
-        slack: slackResult ? 'success' : 'failed',
-        hubspot: hubspotResult ? 'success' : 'failed',
+        hubspot: results[0] ? 'success' : 'failed',
+        slack: leadData.route === 'sms' ? (results[1] ? 'success' : 'failed') : 'skipped',
+        sms: leadData.route === 'sms' ? (results[2] ? 'success' : 'failed') : 'skipped',
       });
     });
 
