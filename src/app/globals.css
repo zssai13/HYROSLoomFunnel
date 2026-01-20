@@ -1,0 +1,136 @@
+/* ===========================================
+   VIP Signup System - Global Styles
+   Matching HYROS brand exactly
+   =========================================== */
+
+/* Google Fonts - Archivo */
+@import url('https://fonts.googleapis.com/css2?family=Archivo:wght@400;500;600&display=swap');
+
+/* CSS Reset */
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+/* CSS Variables - HYROS Color Tokens */
+:root {
+  --color-primary: #000000;
+  --color-primary-text: #000000;
+  --color-button-text: #ffffff;
+  --color-subtitle: #7f7f7f;
+  --color-locked: #a0a0a0;
+  --color-background: #f9f9f9;
+  --color-cards: #ffffff;
+  --color-border: #e9e9e9;
+  --color-input-border: #cecece;
+  --color-error: #fe4a23;
+  --color-blue: #146ecb;
+  --color-green: #4da744;
+  --color-green-light: #e3fae2;
+  --color-green-bright: #15d095;
+
+  /* Spacing */
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-md: 12px;
+  --spacing-lg: 16px;
+  --spacing-xl: 20px;
+  --spacing-2xl: 24px;
+  --spacing-3xl: 32px;
+  --spacing-4xl: 48px;
+
+  /* Dimensions */
+  --form-max-width: 400px;
+  --input-height: 50px;
+  --button-height: 48px;
+  --header-height: 64px;
+  --border-radius: 8px;
+  --info-box-radius: 12px;
+
+  /* Opacity */
+  --opacity-disabled: 0.298;
+}
+
+/* Base styles */
+html, body {
+  min-height: 100vh;
+  font-family: 'Archivo', sans-serif;
+  background-color: var(--color-cards);
+  color: var(--color-primary-text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Typography */
+h1 {
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-size: 40px;
+  font-weight: 500;
+  color: var(--color-primary-text);
+  margin: 0 0 var(--spacing-md) 0;
+  line-height: 1.2;
+}
+
+h1.vip-heading {
+  font-size: 32px;
+}
+
+p {
+  font-family: 'Archivo', sans-serif;
+  font-size: 14px;
+  font-weight: 400;
+  color: var(--color-primary-text);
+  line-height: 1.6;
+}
+
+.subheading {
+  font-size: 16px;
+  color: var(--color-subtitle);
+  margin: 0 0 var(--spacing-md) 0;
+}
+
+/* Form Elements */
+input, select {
+  font-family: 'Archivo', sans-serif;
+  font-size: 14px;
+  color: var(--color-primary-text);
+}
+
+input::placeholder {
+  color: var(--color-locked);
+}
+
+/* Error text */
+.error-text {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-error);
+  margin-top: var(--spacing-xs);
+  display: block;
+}
+
+/* Link styles */
+a {
+  color: var(--color-blue);
+  text-decoration: none;
+}
+
+a:hover {
+  text-decoration: underline;
+}
+
+/* Utility classes */
+.text-center {
+  text-align: center;
+}
+
+.text-blue {
+  color: var(--color-blue);
+  font-weight: 600;
+}
+
+.text-green {
+  color: var(--color-green);
+  font-weight: 500;
+}
