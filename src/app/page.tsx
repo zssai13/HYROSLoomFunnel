@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { LeadFormData, REVENUE_OPTIONS, AD_SPEND_OPTIONS } from '@/lib/types';
+import { LeadFormData, REVENUE_OPTIONS, AD_SPEND_OPTIONS, DISQUALIFYING_REVENUE, DISQUALIFYING_AD_SPEND } from '@/lib/types';
 
 export default function VIPSignupPage() {
   const [step, setStep] = useState(1);
@@ -55,6 +55,12 @@ export default function VIPSignupPage() {
     backgroundPosition: 'right 16px center',
   };
 
+  // Email validation helper
+  const isValidEmail = (email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
   };
@@ -63,35 +69,51 @@ export default function VIPSignupPage() {
     setTouched({ ...touched, [e.target.name]: true });
   };
 
+  // Handle Enter key to submit current step
+  const handleKeyDown = (e: React.KeyboardEvent, submitFn: () => void, isValid: boolean) => {
+    if (e.key === 'Enter' && isValid) {
+      e.preventDefault();
+      submitFn();
+    }
+  };
+
   const handleEmailSubmit = () => {
-    if (formData.email) setStep(2);
+    if (isValidEmail(formData.email)) setStep(2);
+  };
+
+  // Check if lead is disqualified based on revenue or ad spend
+  const isDisqualified = () => {
+    return DISQUALIFYING_REVENUE.includes(formData.monthlyRevenue) ||
+           DISQUALIFYING_AD_SPEND.includes(formData.adSpend);
   };
 
   const handleBusinessInfoSubmit = () => {
-    if (formData.monthlyRevenue && formData.adSpend && formData.websiteUrl) setStep(3);
+    if (formData.monthlyRevenue && formData.adSpend && formData.websiteUrl) {
+      // If disqualified, go to disqualified thank you (step 5)
+      // Otherwise, go to VIP qualification (step 3)
+      setStep(isDisqualified() ? 5 : 3);
+    }
   };
 
-  const handlePhoneSubmit = async () => {
+  // Route 1: SMS contact - submits and goes to thank you
+  const handleRoute1Submit = async () => {
     if (!formData.phoneNumber) return;
 
     setIsSubmitting(true);
 
     try {
       // Submit to API
-      const response = await fetch('/api/submit-lead', {
+      await fetch('/api/submit-lead', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, route: 'sms' }),
       });
 
-      // Always move to thank you step regardless of API response
-      // (API always returns success, errors are logged server-side)
+      // Move to thank you step
       setStep(4);
     } catch (error) {
-      // Even on network error, show thank you
-      // (better UX than error message)
       console.error('Submission error:', error);
       setStep(4);
     } finally {
@@ -99,7 +121,34 @@ export default function VIPSignupPage() {
     }
   };
 
-  const isStep1Valid = formData.email.length > 0;
+  // Route 2: Schedule call - submits and opens Calendly
+  const handleRoute2Submit = async () => {
+    if (!formData.phoneNumber) return;
+
+    setIsSubmitting(true);
+
+    try {
+      // Submit to API
+      await fetch('/api/submit-lead', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ ...formData, route: 'schedule' }),
+      });
+
+      // Open Calendly in new tab
+      window.open('https://api.leadconnectorhq.com/widget/booking/5a3GFjCNmPHK1xBHD60U', '_blank');
+    } catch (error) {
+      console.error('Submission error:', error);
+      // Still open Calendly even on error
+      window.open('https://api.leadconnectorhq.com/widget/booking/5a3GFjCNmPHK1xBHD60U', '_blank');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const isStep1Valid = isValidEmail(formData.email);
   const isStep2Valid = formData.monthlyRevenue && formData.adSpend && formData.websiteUrl;
   const isStep3Valid = formData.phoneNumber.length > 0;
 
@@ -247,12 +296,13 @@ export default function VIPSignupPage() {
                       value={formData.email}
                       onChange={handleChange}
                       onBlur={handleBlur}
+                      onKeyDown={(e) => handleKeyDown(e, handleEmailSubmit, isStep1Valid)}
                       placeholder="Email*"
                       autoComplete="off"
                       style={inputStyle}
                     />
                   </div>
-                  {touched.email && !formData.email && (
+                  {touched.email && !isValidEmail(formData.email) && (
                     <span
                       style={{
                         color: colors.error,
@@ -262,7 +312,7 @@ export default function VIPSignupPage() {
                         display: 'block',
                       }}
                     >
-                      Enter your email
+                      Enter a valid email address
                     </span>
                   )}
                 </div>
@@ -445,6 +495,7 @@ export default function VIPSignupPage() {
                       value={formData.websiteUrl}
                       onChange={handleChange}
                       onBlur={handleBlur}
+                      onKeyDown={(e) => handleKeyDown(e, handleBusinessInfoSubmit, !!isStep2Valid)}
                       placeholder="Website URL*"
                       autoComplete="off"
                       style={inputStyle}
@@ -598,6 +649,7 @@ export default function VIPSignupPage() {
                       value={formData.phoneNumber}
                       onChange={handleChange}
                       onBlur={handleBlur}
+                      onKeyDown={(e) => handleKeyDown(e, handleRoute1Submit, isStep3Valid && !isSubmitting)}
                       placeholder="Phone Number*"
                       autoComplete="off"
                       style={inputStyle}
@@ -617,6 +669,59 @@ export default function VIPSignupPage() {
                     </span>
                   )}
                 </div>
+
+                {/* Route 1: FASTEST - SMS Contact */}
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    width: '100%',
+                  }}
+                >
+                  <button
+                    onClick={handleRoute1Submit}
+                    disabled={!isStep3Valid || isSubmitting}
+                    style={{
+                      width: '100%',
+                      padding: '18px 20px',
+                      borderRadius: 8,
+                      backgroundColor: colors.primary,
+                      color: colors.buttonText,
+                      border: 'none',
+                      cursor: isStep3Valid && !isSubmitting ? 'pointer' : 'not-allowed',
+                      opacity: isStep3Valid && !isSubmitting ? 1 : 0.298,
+                      fontFamily: 'Archivo, sans-serif',
+                      textAlign: 'center',
+                    }}
+                  >
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        backgroundColor: 'rgba(255, 255, 255, 0.2)',
+                        padding: '4px 12px',
+                        borderRadius: 4,
+                        fontSize: 11,
+                        fontWeight: 700,
+                        letterSpacing: '0.5px',
+                        marginBottom: 10,
+                      }}
+                    >
+                      FASTEST
+                    </span>
+                    <span
+                      style={{
+                        display: 'block',
+                        fontSize: 15,
+                        fontWeight: 500,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {isSubmitting ? 'Submitting...' : 'Contact me with video demo + activation links now via SMS'}
+                    </span>
+                  </button>
+                </div>
+
+                {/* Route 2: Schedule Call */}
                 <div
                   style={{
                     display: 'flex',
@@ -626,30 +731,31 @@ export default function VIPSignupPage() {
                   }}
                 >
                   <button
-                    onClick={handlePhoneSubmit}
+                    onClick={handleRoute2Submit}
                     disabled={!isStep3Valid || isSubmitting}
                     style={{
                       width: '100%',
                       height: 48,
                       borderRadius: 8,
-                      backgroundColor: colors.primary,
-                      color: colors.buttonText,
-                      border: 'none',
+                      backgroundColor: 'transparent',
+                      color: colors.blue,
+                      border: `1px solid ${colors.border}`,
                       fontSize: 14,
                       fontWeight: 500,
                       cursor: isStep3Valid && !isSubmitting ? 'pointer' : 'not-allowed',
-                      opacity: isStep3Valid && !isSubmitting ? 1 : 0.298,
+                      opacity: isStep3Valid && !isSubmitting ? 1 : 0.5,
                       fontFamily: 'Archivo, sans-serif',
+                      textDecoration: 'underline',
                     }}
                   >
-                    {isSubmitting ? 'Submitting...' : 'Submit'}
+                    Schedule a demo call at a later time
                   </button>
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 4: Thank You */}
+          {/* Step 4: Thank You (Qualified) */}
           {step === 4 && (
             <div style={{ textAlign: 'center', padding: '32px 0' }}>
               <div
@@ -698,6 +804,64 @@ export default function VIPSignupPage() {
                 }}
               >
                 Watch your phone — you'll receive a text from our team shortly.
+              </p>
+            </div>
+          )}
+
+          {/* Step 5: Thank You (Disqualified - Not Spending Enough) */}
+          {step === 5 && (
+            <div style={{ textAlign: 'center', padding: '32px 0' }}>
+              <div
+                style={{
+                  width: 80,
+                  height: 80,
+                  backgroundColor: '#fff3e6',
+                  borderRadius: '50%',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto 24px',
+                }}
+              >
+                <svg
+                  width="40"
+                  height="40"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="#f59e0b"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <circle cx="12" cy="12" r="10"></circle>
+                  <line x1="12" y1="8" x2="12" y2="12"></line>
+                  <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                </svg>
+              </div>
+              <h1
+                style={{
+                  color: colors.primaryText,
+                  fontSize: 32,
+                  fontWeight: 500,
+                  margin: '0 0 16px 0',
+                  fontFamily: 'system-ui, -apple-system, sans-serif',
+                }}
+              >
+                We're Sorry
+              </h1>
+              <p
+                style={{
+                  color: colors.subtitle,
+                  fontSize: 16,
+                  fontWeight: 400,
+                  margin: 0,
+                  lineHeight: 1.6,
+                  maxWidth: 360,
+                  marginLeft: 'auto',
+                  marginRight: 'auto',
+                }}
+              >
+                HYROS is for businesses spending at least $10k+ a month on ads. It would be a bad fit for you at this time. We will have a free trial here soon for your business! Thank you!
               </p>
             </div>
           )}

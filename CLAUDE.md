@@ -48,6 +48,27 @@
 
 ---
 
+## Lead Submission Routes
+
+On Step 3 (VIP Qualification + Phone), users have two options:
+
+### Route 1: FASTEST (SMS Contact)
+- Button: Green, prominent, labeled "FASTEST"
+- Text: "Contact me with video demo + activation links now via SMS"
+- Behavior: Submits lead to API with `route: 'sms'`, then shows Thank You screen (step 4)
+- Use case: User wants immediate contact via text message
+
+### Route 2: Schedule Call
+- Button: Secondary/outline style, blue text with underline
+- Text: "Schedule a demo call at a later time"
+- Behavior: Submits lead to API with `route: 'schedule'`, then opens Calendly booking page in new tab
+- Calendly URL: `https://api.leadconnectorhq.com/widget/booking/5a3GFjCNmPHK1xBHD60U`
+- Use case: User prefers to schedule a call at their convenience
+
+**Both routes send lead data to Slack and HubSpot (when configured).**
+
+---
+
 ## Architecture Reference
 
 See `docs/ARCHITECTURE.md` for detailed system design.

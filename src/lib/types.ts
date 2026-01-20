@@ -70,13 +70,20 @@ export interface HubSpotSearchResponse {
  * Revenue dropdown options
  */
 export const REVENUE_OPTIONS = [
-  { value: '0-50k', label: '$0 - $50,000' },
+  { value: '0-20k', label: '$0 - $20,000' },
+  { value: '20k-50k', label: '$20,000 - $50,000' },
   { value: '50k-100k', label: '$50,000 - $100,000' },
   { value: '100k-250k', label: '$100,000 - $250,000' },
   { value: '250k-500k', label: '$250,000 - $500,000' },
   { value: '500k-1m', label: '$500,000 - $1,000,000' },
   { value: '1m+', label: '$1,000,000+' },
 ] as const;
+
+/**
+ * Values that disqualify a lead (not spending enough)
+ */
+export const DISQUALIFYING_REVENUE = ['0-20k'];
+export const DISQUALIFYING_AD_SPEND = ['0-10k'];
 
 /**
  * Ad spend dropdown options
